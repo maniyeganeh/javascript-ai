@@ -7,26 +7,31 @@ const chatContainer = document.querySelector("#chat_container");
 let loadInterval;
 
 function loader(element) {
-  element.textContnet = "";
-  loadInterval = setInterval(() => {
-    element.textContnet += "."
+  element.textContent = ''
 
-    if (element.textContnet === "....") {
-      element.textContnet = ""
+  loadInterval = setInterval(() => {
+    // Update the text content of the loading indicator
+    element.textContent += '.';
+
+    // If the loading indicator has reached three dots, reset it
+    if (element.textContent === '....') {
+      element.textContent = '';
     }
-  }, 300)
+  }, 300);
 }
 function typeText(element, text) {
-  let index = 0;
+  let index = 0
+
   let interval = setInterval(() => {
-    if (index > text.length) {
-      element.innerHTML += text.charAt(index);
+    if (index < text.length) {
+      element.innerHTML += text.charAt(index)
       index++
     } else {
-      clearInterval()
+      clearInterval(interval)
     }
   }, 20)
 }
+
 
 function generateUniqueId() {
   const timestamp = Date.now();
@@ -60,6 +65,8 @@ function chatStripe(isAi, value, uniqueId) {
 const handleSubmit = async (event) => {
   event.preventDefault()
   const data = new FormData(form)
+  const formValue = data.get("prompt")
+  console.log(formValue);
   chatContainer.innerHTML += chatStripe(false, data.get('prompt'))
 
   // to clear the textarea input 
@@ -77,6 +84,28 @@ const handleSubmit = async (event) => {
 
   // messageDiv.innerHTML = "..."
   loader(messageDiv)
+  const response = await fetch("http://localhost:6060", {
+    method: "POST",
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      prompt: data.get('prompt')
+    })
+  })
+  clearInterval(loadInterval)
+  messageDiv.innerHTML = ""
+  if (response.ok) {
+    const data = await response.json()
+    const parsedData = data.bot.trim()
+
+    typeText(messageDiv, parsedData)
+
+  } else {
+    const err = await response.text()
+    messageDiv.innerHTML = "Something went wrong"
+    alert(err)
+  }
 
 }
 
